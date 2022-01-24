@@ -13,6 +13,7 @@ import (
 
 type Chatacter struct {
 	Name        string `json:"name"`
+	BaseColor   string `json:"base_color"`
 	CurrentZone string `json:"current_zone"`
 }
 
@@ -43,17 +44,6 @@ func LoginHandler(c *gin.Context) {
 	}
 
 	c.Status(http.StatusForbidden)
-}
-
-func CharacterLoaderHandler(c *gin.Context) {
-	type ChatacterPayload struct {
-		Chars []*Chatacter `json:"chars"`
-	}
-	c.JSON(200, &ChatacterPayload{
-		Chars: []*Chatacter{
-			{Name: "TestCharacter"},
-		},
-	})
 }
 
 func GetGameserverHandler(c *gin.Context) {
