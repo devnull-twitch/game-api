@@ -27,6 +27,7 @@ spec:
         - 
           name: game-api
           image: ghcr.io/devnull-twitch/game-api:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 8080
           env:
@@ -50,7 +51,7 @@ spec:
                   key: gameservers.external_ip
             -
               name: USE_K8S
-              value: 1
+              value: "1"
       imagePullSecrets:
         - name: dockerconfigjson-ghcr
 ---
