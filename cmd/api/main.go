@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/devnull-twitch/game-api/internal/middleware"
@@ -9,6 +10,7 @@ import (
 	"github.com/devnull-twitch/game-api/pkg/k8s"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+	"github.com/sirupsen/logrus"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
@@ -30,9 +32,16 @@ func main() {
 
 		portFinder = k8s.GetPortFinder(clientset)
 	} else {
-		portFinder = func(s string) int {
-			// TODO: read from static file?
-			return 50123
+		portFinder = func(zone string) int {
+			switch zone {
+			case "starting_zone":
+				return 50123
+			case "world_1":
+				return 50124
+			}
+
+			logrus.WithError(fmt.Errorf("unknown zone %s", zone)).Warn("missing zone port")
+			return 0
 		}
 	}
 

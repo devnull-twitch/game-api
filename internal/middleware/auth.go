@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -15,7 +14,6 @@ import (
 func TokenMW(c *gin.Context) {
 	authStr := c.Request.Header.Get("Authorization")
 	authParts := strings.Split(authStr, " ")
-	log.Println(authStr)
 
 	if len(authParts) != 2 {
 		c.AbortWithStatusJSON(http.StatusForbidden, &server.ErrorRespose{

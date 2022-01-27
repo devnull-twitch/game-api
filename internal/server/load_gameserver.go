@@ -28,15 +28,18 @@ func GetLoadGameserverHandler(s accounts.Storage, portFindFn func(string) int) g
 		accountData := s.Get(claims.Subject)
 		requiredZone := ""
 		charName := ""
-		for _, char := range accountData.Characters {
+		for charIndex, char := range accountData.Characters {
 			if char.Name == c.Query("selected_char") {
-				if c.Query("target_zone") != "" {
-					char.StartingZone = c.Query("target_zone")
+				if c.Query("target_scene") != "" {
+					accountData.Characters[charIndex].StartingZone = c.Query("target_scene")
+					requiredZone = c.Query("target_scene")
+				} else {
+					requiredZone = char.StartingZone
 				}
-				requiredZone = char.StartingZone
 				charName = char.Name
 			}
 		}
+
 		if requiredZone == "" {
 			c.AbortWithStatusJSON(http.StatusBadRequest, &ErrorRespose{Message: "no char zone"})
 			return

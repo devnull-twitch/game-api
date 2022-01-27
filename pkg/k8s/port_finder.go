@@ -14,7 +14,7 @@ func GetPortFinder(clientset *kubernetes.Clientset) func(string) int {
 	return func(zone string) int {
 		k8sZone := strings.ReplaceAll(zone, "_", "-")
 
-		services, err := clientset.CoreV1().Services("").List(context.Background(), metav1.ListOptions{
+		services, err := clientset.CoreV1().Services("default").List(context.Background(), metav1.ListOptions{
 			LabelSelector: fmt.Sprintf("gamezone=%s", k8sZone),
 		})
 		if err != nil {
