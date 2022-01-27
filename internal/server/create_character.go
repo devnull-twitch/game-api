@@ -29,7 +29,7 @@ func GetCreateGameCharactersHandler(s accounts.Storage) gin.HandlerFunc {
 
 		acc := s.Get(claims.Subject)
 		acc.Characters = append(acc.Characters, &accounts.GameCharacter{
-			StartingZone: "overworld",
+			StartingZone: "starting_zone",
 			Name:         payload.Name,
 			BaseColor:    payload.BaseColor,
 		})

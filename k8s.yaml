@@ -6,6 +6,7 @@ metadata:
 data:
   api.bind: ":8080"
   api.jwt_secret: "change_me_after_deploy"
+  gameservers.external_ip: "127.0.0.1"
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -41,6 +42,15 @@ spec:
                 configMapKeyRef:
                   name: game-api-config
                   key: api.jwt_secret
+            -
+              name: EXTERNAL_IP
+              valueFrom:
+                configMapKeyRef:
+                  name: game-api-config
+                  key: gameservers.external_ip
+            -
+              name: USE_K8S
+              value: 1
       imagePullSecrets:
         - name: dockerconfigjson-ghcr
 ---
