@@ -35,9 +35,9 @@ func main() {
 		portFinder = func(zone string) int {
 			switch zone {
 			case "starting_zone":
-				return 50123
+				return 50125
 			case "world_1":
-				return 50124
+				return 50126
 			}
 
 			logrus.WithError(fmt.Errorf("unknown zone %s", zone)).Warn("missing zone port")
@@ -46,11 +46,15 @@ func main() {
 	}
 
 	r := gin.Default()
+	r.SetTrustedProxies(nil)
+
 	r.POST("/account", server.GetCreateAccountHandler(s))
 	r.POST("/account/login", server.GetLoginHandler(s))
 	r.GET("/game/characters", middleware.TokenMW, server.GetLoadGameCharactersHandler(s))
 	r.POST("/game/characters", middleware.TokenMW, server.GetCreateGameCharactersHandler(s))
 	r.POST("/game/play", middleware.TokenMW, server.GetLoadGameserverHandler(s, portFinder))
+	r.POST("/character/inventory", middleware.SrverAuthMW, server.GetAddInventory(s))
+	r.GET("/character/inventory", middleware.SrverAuthMW, server.GetGetInventory(s))
 
 	r.Run(os.Getenv("WEBSERVER_BIND"))
 }

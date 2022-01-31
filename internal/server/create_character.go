@@ -32,6 +32,7 @@ func GetCreateGameCharactersHandler(s accounts.Storage) gin.HandlerFunc {
 			StartingZone: "starting_zone",
 			Name:         payload.Name,
 			BaseColor:    payload.BaseColor,
+			Items:        []int{},
 		})
 
 		c.Status(http.StatusCreated)
