@@ -12,13 +12,6 @@ func GetCreateGameCharactersHandler(s accounts.Storage) gin.HandlerFunc {
 		rawClaim, _ := c.Get("claim")
 		claims := rawClaim.(*CustomClaims)
 
-		if !s.Exists(claims.Subject) {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, &ErrorRespose{
-				Message: "invalid Authorization schema",
-			})
-			return
-		}
-
 		payload := &Chatacter{}
 		if err := c.BindJSON(payload); err != nil {
 			c.AbortWithStatusJSON(http.StatusBadRequest, &ErrorRespose{
@@ -27,13 +20,13 @@ func GetCreateGameCharactersHandler(s accounts.Storage) gin.HandlerFunc {
 			return
 		}
 
-		acc := s.Get(claims.Subject)
-		acc.Characters = append(acc.Characters, &accounts.GameCharacter{
-			StartingZone: "starting_zone",
-			Name:         payload.Name,
-			BaseColor:    payload.BaseColor,
-			Items:        []int{},
-		})
+		err := s.AddCharacter(claims.AccountID, payload.Name, payload.BaseColor)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusInternalServerError, &ErrorRespose{
+				Message: "error adding character",
+			})
+			return
+		}
 
 		c.Status(http.StatusCreated)
 	}

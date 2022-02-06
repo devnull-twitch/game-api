@@ -1,7 +1,9 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/devnull-twitch/game-api/internal/middleware"
@@ -9,6 +11,7 @@ import (
 	"github.com/devnull-twitch/game-api/pkg/accounts"
 	"github.com/devnull-twitch/game-api/pkg/k8s"
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v4"
 	"github.com/joho/godotenv"
 	"github.com/sirupsen/logrus"
 	"k8s.io/client-go/kubernetes"
@@ -17,7 +20,14 @@ import (
 
 func main() {
 	godotenv.Load(".env.yaml")
-	s := accounts.NewStorage()
+
+	conn, err := pgx.Connect(context.Background(), os.Getenv("DATABASE_URL"))
+	if err != nil {
+		log.Fatal(fmt.Errorf("unable to connect to database: %w", err))
+	}
+	defer conn.Close(context.Background())
+
+	s := accounts.NewStorage(conn)
 
 	var portFinder func(string) int
 	if os.Getenv("USE_K8S") != "" {

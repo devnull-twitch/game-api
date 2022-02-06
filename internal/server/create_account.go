@@ -31,14 +31,13 @@ func GetCreateAccountHandler(accountStorage accounts.Storage) gin.HandlerFunc {
 			return
 		}
 
-		if accountStorage.Exists(payload.Username) {
+		if err := accountStorage.Add(payload.Username); err != nil {
 			c.AbortWithStatusJSON(http.StatusBadRequest, &ErrorRespose{
-				Message: "Username already in use",
+				Message: "Unable to store account",
 			})
 			return
 		}
 
-		accountStorage.Add(payload.Username)
 		c.Status(http.StatusCreated)
 	}
 }

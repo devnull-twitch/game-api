@@ -1,7 +1,6 @@
 package server
 
 import (
-	"log"
 	"net/http"
 	"os"
 	"time"
@@ -9,18 +8,21 @@ import (
 	"github.com/devnull-twitch/game-api/pkg/accounts"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
+	"github.com/sirupsen/logrus"
 )
 
 type CustomClaims struct {
+	AccountID int64 `json:"account_id,omitempty"`
 	*jwt.StandardClaims
 }
 
-func createToken(user string) (string, error) {
+func createToken(userID int64, accountName string) (string, error) {
 	t := jwt.New(jwt.GetSigningMethod("HS256"))
 	t.Claims = &CustomClaims{
+		AccountID: userID,
 		StandardClaims: &jwt.StandardClaims{
 			ExpiresAt: time.Now().Add(time.Minute * 1).Unix(),
-			Subject:   user,
+			Subject:   accountName,
 		},
 	}
 
@@ -40,14 +42,17 @@ func GetLoginHandler(accountStorage accounts.Storage) gin.HandlerFunc {
 			return
 		}
 
-		if !accountStorage.Exists(payload.Username) {
-			c.AbortWithStatusJSON(http.StatusNotFound, ErrorRespose{Message: "Username is not registered"})
+		acc, err := accountStorage.GetByUsername(payload.Username)
+		if err != nil {
+			logrus.WithError(err).Error("unmable to load account data by username")
+			c.AbortWithStatusJSON(http.StatusInternalServerError, ErrorRespose{Message: "database error"})
 			return
 		}
 
-		jwtToken, err := createToken(payload.Username)
+		// TODO add password hash check ?!
+
+		jwtToken, err := createToken(acc.ID, acc.Username)
 		if err != nil {
-			log.Print(err)
 			c.AbortWithStatusJSON(http.StatusInternalServerError, ErrorRespose{Message: "Username is not registered"})
 			return
 		}

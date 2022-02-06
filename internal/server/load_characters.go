@@ -16,20 +16,19 @@ func GetLoadGameCharactersHandler(s accounts.Storage) gin.HandlerFunc {
 		rawClaim, _ := c.Get("claim")
 		claims := rawClaim.(*CustomClaims)
 
-		if !s.Exists(claims.Subject) {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, &ErrorRespose{
-				Message: "invalid Authorization schema",
+		characters, err := s.GetCharacters(claims.AccountID)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusInternalServerError, &ErrorRespose{
+				Message: "error loading characters",
 			})
 			return
 		}
 
-		acc := s.Get(claims.Subject)
 		resp := &ChatacterPayload{}
-
-		for _, c := range acc.Characters {
+		for _, c := range characters {
 			resp.Chars = append(resp.Chars, &Chatacter{
 				Name:        c.Name,
-				CurrentZone: c.StartingZone,
+				CurrentZone: c.CurrentZone,
 				BaseColor:   c.BaseColor,
 			})
 		}

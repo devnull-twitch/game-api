@@ -11,15 +11,31 @@ import (
 func GetGetInventory(s accounts.Storage) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if c.Query("account") == "" {
-			c.AbortWithStatusJSON(http.StatusBadRequest, &ErrorRespose{Message: "no char selected"})
+			c.AbortWithStatusJSON(http.StatusBadRequest, &ErrorRespose{Message: "no account provided"})
 			return
 		}
 		if c.Query("char") == "" {
-			c.AbortWithStatusJSON(http.StatusBadRequest, &ErrorRespose{Message: "no char selected"})
+			c.AbortWithStatusJSON(http.StatusBadRequest, &ErrorRespose{Message: "no char provided"})
 			return
 		}
 
-		items, err := s.GetItems(c.Query("account"), c.Query("char"))
+		account, err := s.GetByUsername(c.Query("account"))
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusInternalServerError, &ErrorRespose{
+				Message: "error loading account",
+			})
+			return
+		}
+
+		char, err := s.GetCharacterByName(account.ID, c.Query("char"))
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusInternalServerError, &ErrorRespose{
+				Message: "error loading character",
+			})
+			return
+		}
+
+		items, err := s.GetItems(char.ID)
 		if err != nil {
 			logrus.WithError(err).Error("unable to add item to char inventory")
 			c.AbortWithStatusJSON(http.StatusBadRequest, &ErrorRespose{
@@ -28,15 +44,30 @@ func GetGetInventory(s accounts.Storage) gin.HandlerFunc {
 			return
 		}
 
-		type inventoryPayload struct {
-			AccountName   string `json:"account"`
-			CharacterName string `json:"character"`
-			ItemIDs       []int  `json:"item_ids"`
+		type (
+			inventorySlotPayload struct {
+				ItemID   int64 `json:"item_id"`
+				Quantity int64 `json:"quantity"`
+			}
+			inventoryPayload struct {
+				AccountName   string                 `json:"account"`
+				CharacterName string                 `json:"character"`
+				ItemIDs       []inventorySlotPayload `json:"items"`
+			}
+		)
+
+		slotReturnData := make([]inventorySlotPayload, len(items))
+		for i, slotData := range items {
+			slotReturnData[i] = inventorySlotPayload{
+				ItemID:   slotData.ItemID,
+				Quantity: slotData.Quantity,
+			}
 		}
+
 		c.JSON(http.StatusOK, &inventoryPayload{
 			AccountName:   c.Query("account"),
 			CharacterName: c.Query("char"),
-			ItemIDs:       items,
+			ItemIDs:       slotReturnData,
 		})
 	}
 }

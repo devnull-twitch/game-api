@@ -13,30 +13,26 @@ func GetLoadGameserverHandler(s accounts.Storage, portFindFn func(string) int) g
 		rawClaim, _ := c.Get("claim")
 		claims := rawClaim.(*CustomClaims)
 
-		if !s.Exists(claims.Subject) {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, &ErrorRespose{
-				Message: "invalid Authorization schema",
-			})
-			return
-		}
-
 		if c.Query("selected_char") == "" {
 			c.AbortWithStatusJSON(http.StatusBadRequest, &ErrorRespose{Message: "no char selected"})
 			return
 		}
 
-		accountData := s.Get(claims.Subject)
-		requiredZone := ""
-		charName := ""
-		for charIndex, char := range accountData.Characters {
-			if char.Name == c.Query("selected_char") {
-				if c.Query("target_scene") != "" {
-					accountData.Characters[charIndex].StartingZone = c.Query("target_scene")
-					requiredZone = c.Query("target_scene")
-				} else {
-					requiredZone = char.StartingZone
-				}
-				charName = char.Name
+		char, err := s.GetCharacterByName(claims.AccountID, c.Query("selected_char"))
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusInternalServerError, &ErrorRespose{
+				Message: "error loading character",
+			})
+			return
+		}
+
+		requiredZone := char.CurrentZone
+		if c.Query("target_scene") != "" {
+			if err := s.ChangeCurrentZone(char.ID, c.Query("target_scene")); err != nil {
+				c.AbortWithStatusJSON(http.StatusInternalServerError, &ErrorRespose{
+					Message: "error changing character zone",
+				})
+				return
 			}
 		}
 
@@ -59,7 +55,7 @@ func GetLoadGameserverHandler(s accounts.Storage, portFindFn func(string) int) g
 		}
 		c.JSON(http.StatusOK, &GSResponse{
 			Scene:         requiredZone,
-			CharacterName: charName,
+			CharacterName: char.Name,
 			IP:            os.Getenv("EXTERNAL_IP"),
 			Port:          port,
 		})
