@@ -8,18 +8,18 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func GetAddInventory(s accounts.Storage) gin.HandlerFunc {
+func GetDeleteInventoryHandler(s accounts.Storage) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		type addItemPayload struct {
+		type removeItemPayload struct {
 			AccountName string `json:"account"`
 			Character   string `json:"character"`
 			ItemID      int64  `json:"item_id,string"`
 			Quantity    int64  `json:"quantity,string"`
 		}
-		payload := &addItemPayload{}
+		payload := &removeItemPayload{}
 		if err := c.BindJSON(payload); err != nil {
 			c.AbortWithStatusJSON(http.StatusBadRequest, &ErrorRespose{
-				Message: "Invalid add item payload",
+				Message: "Invalid remove item payload",
 			})
 			return
 		}
@@ -49,17 +49,18 @@ func GetAddInventory(s accounts.Storage) gin.HandlerFunc {
 			return
 		}
 
-		if err := s.AddItem(&accounts.InventorySlot{
-			CharacterID: char.ID,
-			ItemID:      payload.ItemID,
-			Quantity:    payload.Quantity,
-		}); err != nil {
-			logrus.WithError(err).Error("unable to add item to char inventory")
+		if err := s.RemoveItem(char.ID, payload.ItemID, payload.Quantity); err != nil {
+			logrus.WithError(err).Error("unable to remove item from char inventory")
 			c.AbortWithStatusJSON(http.StatusBadRequest, &ErrorRespose{
 				Message: "Something went wrong",
 			})
 			return
 		}
+		logrus.WithFields(logrus.Fields{
+			"character_id": char.ID,
+			"item_id":      payload.ItemID,
+			"quantity":     payload.Quantity,
+		}).Info("removed some items")
 
 		c.Status(http.StatusOK)
 	}

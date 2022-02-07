@@ -48,6 +48,7 @@ func GetGetInventory(s accounts.Storage) gin.HandlerFunc {
 			inventorySlotPayload struct {
 				ItemID   int64 `json:"item_id"`
 				Quantity int64 `json:"quantity"`
+				SlotID   int64 `json:"slot_id"`
 			}
 			inventoryPayload struct {
 				AccountName   string                 `json:"account"`
@@ -61,6 +62,7 @@ func GetGetInventory(s accounts.Storage) gin.HandlerFunc {
 			slotReturnData[i] = inventorySlotPayload{
 				ItemID:   slotData.ItemID,
 				Quantity: slotData.Quantity,
+				SlotID:   slotData.SlotID,
 			}
 		}
 

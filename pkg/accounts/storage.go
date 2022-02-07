@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/jackc/pgx/v4"
+	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/sirupsen/logrus"
 )
 
@@ -18,8 +18,12 @@ type (
 		GetCharacterByName(userID int64, characterName string) (*GameCharacter, error)
 		AddCharacter(userID int64, characterName, baseColor string) error
 		AddItem(item *InventorySlot) error
+		RemoveItem(charID int64, itemID int64, quantity int64) error
+		UpdateItem(charID int64, itemID int64, quantity int64) error
 		GetItems(charID int64) ([]*InventorySlot, error)
 		ChangeCurrentZone(charID int64, newZone string) error
+		UnslotEquipment(charID int64, slotID int64, itemID int64) error
+		SlotEquipment(charID int64, slotID int64, itemID int64) error
 	}
 
 	GameCharacter struct {
@@ -39,14 +43,15 @@ type (
 		ItemID      int64
 		CharacterID int64
 		Quantity    int64
+		SlotID      int64
 	}
 
 	databaseStorgae struct {
-		conn *pgx.Conn
+		conn *pgxpool.Pool
 	}
 )
 
-func NewStorage(conn *pgx.Conn) Storage {
+func NewStorage(conn *pgxpool.Pool) Storage {
 	return &databaseStorgae{
 		conn: conn,
 	}
@@ -151,7 +156,7 @@ func (m *databaseStorgae) AddItem(item *InventorySlot) error {
 }
 
 func (m *databaseStorgae) GetItems(charID int64) ([]*InventorySlot, error) {
-	rows, err := m.conn.Query(context.Background(), "SELECT item_id, quantity FROM character_items WHERE chracter_id = $1", charID)
+	rows, err := m.conn.Query(context.Background(), "SELECT item_id, quantity, slot_id FROM character_items WHERE chracter_id = $1", charID)
 	if err != nil {
 		return nil, fmt.Errorf("error loading items from inventory: %w", err)
 	}
@@ -161,8 +166,9 @@ func (m *databaseStorgae) GetItems(charID int64) ([]*InventorySlot, error) {
 		var (
 			itemID   int64
 			quantity int64
+			slotID   int64
 		)
-		if err := rows.Scan(&itemID, &quantity); err != nil {
+		if err := rows.Scan(&itemID, &quantity, &slotID); err != nil {
 			logrus.WithError(err).Error("unable to load item id")
 			continue
 		}
@@ -171,6 +177,7 @@ func (m *databaseStorgae) GetItems(charID int64) ([]*InventorySlot, error) {
 			ItemID:      itemID,
 			CharacterID: charID,
 			Quantity:    quantity,
+			SlotID:      slotID,
 		})
 	}
 
@@ -206,6 +213,93 @@ func (m *databaseStorgae) ChangeCurrentZone(charID int64, newZone string) error 
 	_, err := m.conn.Exec(context.Background(), "UPDATE characters SET current_zone = $1 WHERE id = $2", newZone, charID)
 	if err != nil {
 		return fmt.Errorf("error updating character zone: %w", err)
+	}
+
+	return nil
+}
+
+func (m *databaseStorgae) UnslotEquipment(charID int64, slotID int64, itemID int64) error {
+	cmd, err := m.conn.Exec(
+		context.Background(),
+		"UPDATE character_items SET slot_id = 0 WHERE chracter_id = $1 AND item_id = $2 AND slot_id = $3",
+		charID,
+		itemID,
+		slotID,
+	)
+	if err != nil {
+		return fmt.Errorf("error clearing character inventory slot: %w", err)
+	}
+
+	if cmd.RowsAffected() != 1 {
+		return fmt.Errorf("item was not unequiped")
+	}
+
+	return nil
+}
+
+func (m *databaseStorgae) SlotEquipment(charID int64, slotID int64, itemID int64) error {
+	cmd, err := m.conn.Exec(
+		context.Background(),
+		`UPDATE character_items SET slot_id = $3 WHERE 
+			id = (SELECT id FROM character_items WHERE chracter_id = $1 AND item_id = $2 AND slot_id = 0 LIMIT 1)`,
+		charID,
+		itemID,
+		slotID,
+	)
+	if err != nil {
+		return fmt.Errorf("error updating character inventory slots: %w", err)
+	}
+
+	if cmd.RowsAffected() != 1 {
+		return fmt.Errorf("item was not equiped")
+	}
+
+	return nil
+}
+
+func (m *databaseStorgae) RemoveItem(charID int64, itemID int64, quantity int64) error {
+	cmd, err := m.conn.Exec(
+		context.Background(),
+		"UPDATE character_items SET quantity = quantity - $3 WHERE id = (SELECT id FROM character_items WHERE chracter_id = $1 AND item_id = $2 LIMIT 1)",
+		charID,
+		itemID,
+		quantity,
+	)
+	if err != nil {
+		return fmt.Errorf("error updating character inventory slots: %w", err)
+	}
+
+	if cmd.RowsAffected() != 1 {
+		return fmt.Errorf("item did not exist")
+	}
+
+	_, err = m.conn.Exec(
+		context.Background(),
+		"DELETE FROM character_items WHERE chracter_id = $1 AND item_id = $2 AND quantity = 0",
+		charID,
+		itemID,
+	)
+	if err != nil {
+		return fmt.Errorf("error deleting character inventory slots: %w", err)
+	}
+
+	return nil
+}
+
+func (m *databaseStorgae) UpdateItem(charID int64, itemID int64, quantity int64) error {
+	cmd, err := m.conn.Exec(
+		context.Background(),
+		"UPDATE character_items SET quantity = $3 WHERE id = (SELECT id FROM character_items WHERE chracter_id = $1 AND item_id = $2 LIMIT 1)",
+		charID,
+		itemID,
+		quantity,
+	)
+	if err != nil {
+		return fmt.Errorf("error updating character inventory: %w", err)
+	}
+
+	if cmd.RowsAffected() != 1 {
+		return fmt.Errorf("item was not updated")
 	}
 
 	return nil

@@ -11,7 +11,7 @@ import (
 	"github.com/devnull-twitch/game-api/pkg/accounts"
 	"github.com/devnull-twitch/game-api/pkg/k8s"
 	"github.com/gin-gonic/gin"
-	"github.com/jackc/pgx/v4"
+	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/joho/godotenv"
 	"github.com/sirupsen/logrus"
 	"k8s.io/client-go/kubernetes"
@@ -21,11 +21,10 @@ import (
 func main() {
 	godotenv.Load(".env.yaml")
 
-	conn, err := pgx.Connect(context.Background(), os.Getenv("DATABASE_URL"))
+	conn, err := pgxpool.Connect(context.Background(), os.Getenv("DATABASE_URL"))
 	if err != nil {
 		log.Fatal(fmt.Errorf("unable to connect to database: %w", err))
 	}
-	defer conn.Close(context.Background())
 
 	s := accounts.NewStorage(conn)
 
@@ -65,6 +64,9 @@ func main() {
 	r.POST("/game/play", middleware.TokenMW, server.GetLoadGameserverHandler(s, portFinder))
 	r.POST("/character/inventory", middleware.SrverAuthMW, server.GetAddInventory(s))
 	r.GET("/character/inventory", middleware.SrverAuthMW, server.GetGetInventory(s))
+	r.POST("/character/inventory/slot_change", middleware.SrverAuthMW, server.GetSlotChangeInventoryHandler(s))
+	r.DELETE("/character/inventory", middleware.SrverAuthMW, server.GetDeleteInventoryHandler(s))
+	r.PUT("/character/inventory", middleware.SrverAuthMW, server.GetUpdateInventoryHandler(s))
 
 	r.Run(os.Getenv("WEBSERVER_BIND"))
 }
