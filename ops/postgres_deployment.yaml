@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gamedb
+  labels:
+    app: gamedb
+spec:
+  selector:
+    matchLabels:
+      app: gamedb
+      block: postgres
+  template:
+    metadata:
+      labels:
+        app: gamedb
+        block: postgres
+    spec:
+      containers:
+        -
+          name: gamedb
+          image: postgres:14-alpine
+          ports:
+            - containerPort: 5432
+          env:
+            -
+              name: POSTGRES_USER
+              value: game
+            -
+              name: POSTGRES_PASSWORD
+              value: game
+          volumeMounts:
+            -
+              mountPath: "/var/lib/postgresql/data"
+              subPath: data
+              name: dbdata
+      volumes:
+        - 
+          name: dbdata
+          persistentVolumeClaim:
+            claimName: gamedb-pvc

@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: gamedb
+spec:
+  type: ClusterIP
+  selector:
+    app: gamedb
+    block: postgres
+  ports:
+    - port: 5432
