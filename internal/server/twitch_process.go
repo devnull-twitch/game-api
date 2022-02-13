@@ -108,6 +108,13 @@ func GetConfirmGameToken(client *helix.Client, accountStorage accounts.Storage) 
 					logrus.WithError(err).Error("unable to rsetup new account")
 					c.AbortWithStatus(http.StatusInternalServerError)
 					return
+				} else {
+					accObj, err = accountStorage.GetByUsername(resp.Data.Login)
+					if err != nil {
+						logrus.WithError(err).Error("unable to load fresh user account")
+						c.AbortWithStatus(http.StatusInternalServerError)
+						return
+					}
 				}
 			} else {
 				logrus.WithError(err).Error("unable to load account data")
