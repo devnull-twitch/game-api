@@ -88,7 +88,11 @@ func GetConfirmGameToken(client *helix.Client, accountStorage accounts.Storage) 
 			c.AbortWithStatus(http.StatusInternalServerError)
 			return
 		}
-		fmt.Println(twUserAccess.Data.AccessToken)
+		if twUserAccess.Data.AccessToken == "" {
+			logrus.Error("access token is empty")
+			c.AbortWithStatus(http.StatusInternalServerError)
+			return
+		}
 
 		ok, resp, err := client.ValidateToken(twUserAccess.Data.AccessToken)
 		if err != nil {

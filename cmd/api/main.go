@@ -61,6 +61,7 @@ func main() {
 	}
 	client, err := helix.NewClient(&helix.Options{
 		ClientID:       os.Getenv("TW_CLIENTID"),
+		ClientSecret:   os.Getenv("TW_CLIENTSECRET"),
 		AppAccessToken: os.Getenv("TW_APP_ACCESS"),
 		RedirectURI:    fmt.Sprintf("%s/rpg/twitch/confirm", apiBaseURL),
 	})
