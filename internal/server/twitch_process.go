@@ -68,7 +68,7 @@ func GetSetupNewGameToken(client *helix.Client) gin.HandlerFunc {
 		authURL := client.GetAuthorizationURL(&helix.AuthorizationURLParams{
 			State:        gt,
 			ResponseType: "code",
-			Scopes:       []string{},
+			Scopes:       []string{"user:read:email"},
 		})
 		c.JSON(http.StatusOK, struct {
 			AuthURL string `json:"auth_url"`
