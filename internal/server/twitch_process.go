@@ -100,21 +100,34 @@ func GetConfirmGameToken(client *helix.Client, accountStorage accounts.Storage) 
 			c.AbortWithStatus(http.StatusForbidden)
 			return
 		}
-		if resp.Data.Login == "" {
-			logrus.Error("empty twitch username from valid token")
+		if resp.Data.UserID == "" {
+			logrus.Error("empty twitch user ID from valid token")
 			c.AbortWithStatus(http.StatusForbidden)
 			return
 		}
 
-		accObj, err := accountStorage.GetByUsername(resp.Data.Login)
+		userResp, err := client.GetUsers(&helix.UsersParams{IDs: []string{resp.Data.UserID}})
+		if err != nil {
+			logrus.WithError(err).Error("unable to load user from ID")
+			c.AbortWithStatus(http.StatusInternalServerError)
+			return
+		}
+		if len(userResp.Data.Users) <= 0 {
+			logrus.Error("not found user from ID")
+			c.AbortWithStatus(http.StatusInternalServerError)
+			return
+		}
+		userName := userResp.Data.Users[0].Login
+
+		accObj, err := accountStorage.GetByUsername(userName)
 		if err != nil {
 			if errors.Is(err, pgx.ErrNoRows) {
-				if err := setupNewUser(accountStorage, resp.Data.Login); err != nil {
+				if err := setupNewUser(accountStorage, userName); err != nil {
 					logrus.WithError(err).Error("unable to rsetup new account")
 					c.AbortWithStatus(http.StatusInternalServerError)
 					return
 				} else {
-					accObj, err = accountStorage.GetByUsername(resp.Data.Login)
+					accObj, err = accountStorage.GetByUsername(userName)
 					if err != nil {
 						logrus.WithError(err).Error("unable to load fresh user account")
 						c.AbortWithStatus(http.StatusInternalServerError)
