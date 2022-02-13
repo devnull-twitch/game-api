@@ -71,8 +71,8 @@ func GetSetupNewGameToken(client *helix.Client) gin.HandlerFunc {
 			Scopes:       []string{},
 		})
 		c.JSON(http.StatusOK, struct {
-			AuthURL string
-			Token   string
+			AuthURL string `json:"auth_url"`
+			Token   string `json:"wait_token"`
 		}{
 			AuthURL: authURL,
 			Token:   gt,
