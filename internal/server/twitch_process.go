@@ -88,6 +88,7 @@ func GetConfirmGameToken(client *helix.Client, accountStorage accounts.Storage) 
 			c.AbortWithStatus(http.StatusInternalServerError)
 			return
 		}
+		fmt.Println(twUserAccess.Data.AccessToken)
 
 		ok, resp, err := client.ValidateToken(twUserAccess.Data.AccessToken)
 		if err != nil {
