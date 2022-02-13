@@ -100,6 +100,11 @@ func GetConfirmGameToken(client *helix.Client, accountStorage accounts.Storage) 
 			c.AbortWithStatus(http.StatusForbidden)
 			return
 		}
+		if resp.Data.Login == "" {
+			logrus.Error("empty twitch username from valid token")
+			c.AbortWithStatus(http.StatusForbidden)
+			return
+		}
 
 		accObj, err := accountStorage.GetByUsername(resp.Data.Login)
 		if err != nil {
