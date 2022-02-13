@@ -65,17 +65,23 @@ spec:
                   name: game-api-config
                   key: api.database_url
             -
-              name: TW_CLIENTID
+              name: TW_APP_ACCESS
               valueFrom:
                 configMapKeyRef:
                   name: game-api-config
                   key: twitch.appaccess
             -
-              name: TW_APP_ACCESS
+              name: TW_CLIENTID
               valueFrom:
                 configMapKeyRef:
                   name: game-api-config
                   key: twitch.clientid
+            -
+              name: TW_CLIENTSECRET
+              valueFrom:
+                configMapKeyRef:
+                  name: game-api-config
+                  key: twitch.clientsecret
       imagePullSecrets:
         - name: dockerconfigjson-ghcr
 ---
