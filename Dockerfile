@@ -15,5 +15,6 @@ RUN go mod download && \
 FROM alpine:3 AS runner
 
 COPY --from=builder /app/api /api
+COPY templates templates
 
 ENTRYPOINT ["/api"]
