@@ -55,9 +55,14 @@ func main() {
 		}
 	}
 
+	apiBaseURL := os.Getenv("API_BASE_URL")
+	if apiBaseURL == "" {
+		apiBaseURL = "https://devnullga.me"
+	}
 	client, err := helix.NewClient(&helix.Options{
 		ClientID:       os.Getenv("TW_CLIENTID"),
 		AppAccessToken: os.Getenv("TW_APP_ACCESS"),
+		RedirectURI:    fmt.Sprintf("%s/rpg/twitch/confirm", apiBaseURL),
 	})
 	if err != nil {
 		log.Fatal("unable to create twitch api client")
@@ -73,6 +78,7 @@ func main() {
 	group := r.Group("/rpg")
 	{
 		group.POST("/twitch/start", server.GetSetupNewGameToken(client))
+		group.GET("/twitch/confirm", server.GetConfirmGameToken(client, s))
 		group.GET("/twitch/check", server.GetCheckGameToken())
 		group.GET("/game/characters", middleware.TokenMW, server.GetLoadGameCharactersHandler(s))
 		group.POST("/game/play", middleware.TokenMW, server.GetLoadGameserverHandler(s, portFinder))
