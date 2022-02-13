@@ -52,6 +52,30 @@ spec:
             -
               name: USE_K8S
               value: "1"
+            -
+              name: GS_AUTH_PASSWORD
+              valueFrom:
+                configMapKeyRef:
+                  name: game-api-config
+                  key: api.gs_auth_password
+            -
+              name: DATABASE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: game-api-config
+                  key: api.database_url
+            -
+              name: TW_CLIENTID
+              valueFrom:
+                configMapKeyRef:
+                  name: game-api-config
+                  key: twitch.appaccess
+            -
+              name: TW_APP_ACCESS
+              valueFrom:
+                configMapKeyRef:
+                  name: game-api-config
+                  key: twitch.clientid
       imagePullSecrets:
         - name: dockerconfigjson-ghcr
 ---

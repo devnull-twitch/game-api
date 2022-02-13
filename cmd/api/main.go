@@ -13,6 +13,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/joho/godotenv"
+	"github.com/nicklaw5/helix"
 	"github.com/sirupsen/logrus"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -54,19 +55,33 @@ func main() {
 		}
 	}
 
+	client, err := helix.NewClient(&helix.Options{
+		ClientID:       os.Getenv("TW_CLIENTID"),
+		AppAccessToken: os.Getenv("TW_APP_ACCESS"),
+	})
+	if err != nil {
+		log.Fatal("unable to create twitch api client")
+	}
+
+	go server.TokenProcessor()
+
 	r := gin.Default()
 	r.SetTrustedProxies(nil)
 
-	r.POST("/account", server.GetCreateAccountHandler(s))
-	r.POST("/account/login", server.GetLoginHandler(s))
-	r.GET("/game/characters", middleware.TokenMW, server.GetLoadGameCharactersHandler(s))
-	r.POST("/game/characters", middleware.TokenMW, server.GetCreateGameCharactersHandler(s))
-	r.POST("/game/play", middleware.TokenMW, server.GetLoadGameserverHandler(s, portFinder))
-	r.POST("/character/inventory", middleware.SrverAuthMW, server.GetAddInventory(s))
-	r.GET("/character/inventory", middleware.SrverAuthMW, server.GetGetInventory(s))
-	r.POST("/character/inventory/slot_change", middleware.SrverAuthMW, server.GetSlotChangeInventoryHandler(s))
-	r.DELETE("/character/inventory", middleware.SrverAuthMW, server.GetDeleteInventoryHandler(s))
-	r.PUT("/character/inventory", middleware.SrverAuthMW, server.GetUpdateInventoryHandler(s))
+	r.LoadHTMLGlob("templates/*")
+
+	group := r.Group("/rpg")
+	{
+		group.POST("/twitch/start", server.GetSetupNewGameToken(client))
+		group.GET("/twitch/check", server.GetCheckGameToken())
+		group.GET("/game/characters", middleware.TokenMW, server.GetLoadGameCharactersHandler(s))
+		group.POST("/game/play", middleware.TokenMW, server.GetLoadGameserverHandler(s, portFinder))
+		group.POST("/character/inventory", middleware.SrverAuthMW, server.GetAddInventory(s))
+		group.GET("/character/inventory", middleware.SrverAuthMW, server.GetGetInventory(s))
+		group.POST("/character/inventory/slot_change", middleware.SrverAuthMW, server.GetSlotChangeInventoryHandler(s))
+		group.DELETE("/character/inventory", middleware.SrverAuthMW, server.GetDeleteInventoryHandler(s))
+		group.PUT("/character/inventory", middleware.SrverAuthMW, server.GetUpdateInventoryHandler(s))
+	}
 
 	r.Run(os.Getenv("WEBSERVER_BIND"))
 }
